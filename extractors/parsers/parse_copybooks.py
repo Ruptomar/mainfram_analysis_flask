@@ -12,7 +12,5 @@ def process_cobol_file(cobol_file):
         decoded_code = cobol_code.decode(encoding)
     except (UnicodeDecodeError, TypeError):
         decoded_code = cobol_code.decode('utf-8', errors='ignore')
-    cics_commands = re.findall(r'\b(CALL|SEND|RECEIVE|START|WAIT)\b', decoded_code)
-    sql_queries = re.findall(r'EXEC SQL.*?END-EXEC', decoded_code, re.DOTALL)
-    #copybooks = re.findall(r'(?:COPY|INCLUDE)\s+([\w\-\.]+)\.?', decoded_code)
-    return cics_commands, sql_queries
+    copybooks = re.findall(r'(?:COPY|INCLUDE)\s+([\w\-\.]+)\.?', decoded_code)
+    return copybooks

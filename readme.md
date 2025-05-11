@@ -1,3 +1,4 @@
+Commandsß
 curl -X POST -F "file=@./path_to_your_file.zip" http://127.0.0.1:5000/api/v1/cics/extract_cics
 curl -X POST -F "file=@./path_to_your_file.zip" http://127.0.0.1:5000/api/v1/sql/extract_sql
 curl -X POST -F "file=@./path_to_your_file.zip" http://127.0.0.1:5000/api/v1/copybook/extract_copybook

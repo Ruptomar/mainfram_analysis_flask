@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
 import zipfile
-from utils import process_cobol_file
+from extractors.parsers.parse_sql import process_cobol_file
 
 sql_bp = Blueprint('sql', __name__)
 

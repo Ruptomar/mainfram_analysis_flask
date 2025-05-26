@@ -13,4 +13,5 @@ def process_cobol_file(cobol_file):
     except (UnicodeDecodeError, TypeError):
         decoded_code = cobol_code.decode('utf-8', errors='ignore')
     copybooks = re.findall(r'(?:COPY|INCLUDE)\s+([\w\-\.]+)\.?', decoded_code)
+    print("copybooks analysis completed")
     return copybooks

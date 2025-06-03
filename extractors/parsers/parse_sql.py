@@ -57,3 +57,24 @@ def process_cobol_file_for_insert(cobol_file):
 
     print("INSERT-only SQL query extraction completed")
     return insert_queries
+
+def process_cobol_file_for_update(cobol_file):
+    cobol_code = cobol_file.read()
+    encoding = detect_encoding(cobol_code)
+
+    try:
+        decoded_code = cobol_code.decode(encoding)
+    except (UnicodeDecodeError, TypeError):
+        decoded_code = cobol_code.decode('utf-8', errors='ignore')
+
+    # Extract all EXEC SQL ... END-EXEC blocks
+    all_sql_blocks = re.findall(r'EXEC SQL.*?END-EXEC', decoded_code, re.DOTALL | re.IGNORECASE)
+
+    # Filter only UPDATE queries
+    update_queries = []
+    for sql in all_sql_blocks:
+        if re.search(r'\bUPDATE\b', sql, re.IGNORECASE):
+            update_queries.append(sql.strip())
+
+    print("UPDATE-only SQL query extraction completed")
+    return update_queries

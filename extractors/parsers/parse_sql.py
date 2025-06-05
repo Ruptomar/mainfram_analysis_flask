@@ -78,3 +78,24 @@ def process_cobol_file_for_update(cobol_file):
 
     print("UPDATE-only SQL query extraction completed")
     return update_queries
+
+def process_cobol_file_for_delete(cobol_file):
+    cobol_code = cobol_file.read()
+    encoding = detect_encoding(cobol_code)
+
+    try:
+        decoded_code = cobol_code.decode(encoding)
+    except (UnicodeDecodeError, TypeError):
+        decoded_code = cobol_code.decode('utf-8', errors='ignore')
+
+    # Extract all EXEC SQL ... END-EXEC blocks
+    all_sql_blocks = re.findall(r'EXEC SQL.*?END-EXEC', decoded_code, re.DOTALL | re.IGNORECASE)
+
+    # Filter only DELETE queries
+    delete_queries = []
+    for sql in all_sql_blocks:
+        if re.search(r'\bDELETE\b', sql, re.IGNORECASE):
+            delete_queries.append(sql.strip())
+
+    print("DELETE-only SQL query extraction completed")
+    return delete_queries

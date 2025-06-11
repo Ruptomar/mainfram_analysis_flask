@@ -69,3 +69,24 @@ def process_jcl_file_for_program_only(jcl_file):
     
     print("Program only extraction completed.")
     return list(programs)
+
+def process_jcl_file_for_utility_only(jcl_file):
+    jcl_bytes = jcl_file.read()
+    encoding = detect_encoding(jcl_bytes)
+    try:
+        decoded_jcl = jcl_bytes.decode(encoding)
+    except (UnicodeDecodeError, TypeError):
+        decoded_jcl = jcl_bytes.decode('utf-8', errors='ignore')
+    
+    # Capture EXEC PGM=
+    pattern = r'EXEC\s+PGM\s*=\s*([A-Z0-9$#@_-]+)'
+    matches = re.findall(pattern, decoded_jcl, re.IGNORECASE)
+    
+    # Filter out utilities, dedupe & normalize
+    utilities = sorted({
+        name.upper() for name in matches
+        if name.upper() in UTILITIES
+    })
+    
+    print("Utility only extraction completed.")
+    return list(utilities)

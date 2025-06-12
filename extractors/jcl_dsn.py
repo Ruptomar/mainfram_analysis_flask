@@ -4,6 +4,7 @@ from extractors.parsers.parse_jcl_dsn import process_jcl_file
 from extractors.parsers.parse_jcl_dsn import process_jcl_file_for_program
 from extractors.parsers.parse_jcl_dsn import process_jcl_file_for_program_only
 from extractors.parsers.parse_jcl_dsn import process_jcl_file_for_utility_only
+from extractors.parsers.parse_jcl_dsn import process_jcl_file_for_proc
 
 jcl_dsn_bp = Blueprint('jcl_dsn', __name__)
 
@@ -100,6 +101,32 @@ def extract_utility_only_from_jcl():
                     if filename.endswith('.jcl'):
                         with zip_ref.open(filename) as jcl_file:
                             jcl_pgms = process_jcl_file_for_utility_only(jcl_file)
+                            if jcl_pgms:
+                                results[filename] = jcl_pgms
+                if results:
+                    return jsonify(results), 200
+                else:
+                    return jsonify({"message": "No Utilities found"}), 200
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+    else:
+        return jsonify({"error": "Invalid file format. Please upload a ZIP file."}), 400
+
+@jcl_dsn_bp.route('/extract_proc_from_jcl', methods=['POST'])
+def extract_proc_from_jcl():
+    if 'file' not in request.files:
+        return jsonify({"error": "No file part"}), 400
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({"error": "No selected file"}), 400
+    if file and file.filename.endswith('.zip'):
+        try:
+            with zipfile.ZipFile(file, 'r') as zip_ref:
+                results = {}
+                for filename in zip_ref.namelist():
+                    if filename.endswith('.jcl'):
+                        with zip_ref.open(filename) as jcl_file:
+                            jcl_pgms = process_jcl_file_for_proc(jcl_file)
                             if jcl_pgms:
                                 results[filename] = jcl_pgms
                 if results:

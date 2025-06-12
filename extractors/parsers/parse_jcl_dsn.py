@@ -90,3 +90,21 @@ def process_jcl_file_for_utility_only(jcl_file):
     
     print("Utility only extraction completed.")
     return list(utilities)
+
+def process_jcl_file_for_proc(jcl_file):
+   
+    jcl_code = jcl_file.read()
+    encoding = detect_encoding(jcl_code)
+    try:
+        decoded_jcl = jcl_code.decode(encoding)
+    except (UnicodeDecodeError, TypeError):
+        # Fallback to utf-8 with error ignoring if detection fails or is incorrect
+        decoded_jcl = jcl_code.decode('utf-8', errors='ignore')
+    
+    # Extract program names using EXEC PGM= pattern
+    proc_pattern = r'EXEC\s+PROC\s*=\s*([A-Z0-9$#@_-]+)'
+    #program_names = re.findall(pgm_pattern, decoded_jcl, re.IGNORECASE)
+    proc_names = list(set(re.findall(proc_pattern, decoded_jcl, re.IGNORECASE)))
+
+    print("Proc name extraction completed.")
+    return proc_names

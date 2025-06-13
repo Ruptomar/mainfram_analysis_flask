@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
 import zipfile
-from extractors.parsers.parse_sql import process_cobol_file
+from extractors.parsers.parse_sql import process_cobol_file_for_all
 from extractors.parsers.parse_sql import process_cobol_file_for_select
 from extractors.parsers.parse_sql import process_cobol_file_for_insert
 from extractors.parsers.parse_sql import process_cobol_file_for_update
@@ -22,7 +22,7 @@ def extract_sql():
                 for filename in zip_ref.namelist():
                     if filename.endswith('.cbl'):
                         with zip_ref.open(filename) as cobol_file:
-                            sql_queries = process_cobol_file(cobol_file)
+                            sql_queries = process_cobol_file_for_all(cobol_file)
                             if sql_queries:
                                 results[filename] = sql_queries
                 if results:

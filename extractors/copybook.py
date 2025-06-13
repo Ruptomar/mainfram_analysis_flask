@@ -1,11 +1,11 @@
 from flask import Blueprint, request, jsonify
 import zipfile
-from extractors.parsers.parse_copybooks import process_cobol_file
+from extractors.parsers.parse_copybooks import process_cobol_file_for_copybook
 
-copybooks_bp = Blueprint('copybooks', __name__)
+copybook_bp = Blueprint('copybook', __name__)
 
-@copybooks_bp.route('/extract_copybooks', methods=['POST'])
-def extract_copybooks():
+@copybook_bp.route('/extract_copybook', methods=['POST'])
+def extract_copybook():
     if 'file' not in request.files:
         return jsonify({"error": "No file part"}), 400
     file = request.files['file']
@@ -18,7 +18,7 @@ def extract_copybooks():
                 for filename in zip_ref.namelist():
                     if filename.endswith('.cbl'):
                         with zip_ref.open(filename) as cobol_file:
-                            copybooks = process_cobol_file(cobol_file)
+                            copybooks = process_cobol_file_for_copybook(cobol_file)
                             if copybooks:
                                 results[filename] = copybooks
                 if results:

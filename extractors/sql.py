@@ -1,10 +1,6 @@
 from flask import Blueprint, request, jsonify
 import zipfile
-from extractors.parsers.parse_sql import process_cobol_file_for_all
-from extractors.parsers.parse_sql import process_cobol_file_for_select
-from extractors.parsers.parse_sql import process_cobol_file_for_insert
-from extractors.parsers.parse_sql import process_cobol_file_for_update
-from extractors.parsers.parse_sql import process_cobol_file_for_delete
+from extractors.parsers.parse_sql import process_cobol_file_for_all, process_cobol_file_for_select, process_cobol_file_for_insert, process_cobol_file_for_update, process_cobol_file_for_delete
 
 sql_bp = Blueprint('sql', __name__)
 

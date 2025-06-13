@@ -5,7 +5,7 @@ def detect_encoding(cobol_code: bytes):
     result = chardet.detect(cobol_code)
     return result['encoding']
 
-def process_cobol_file(cobol_file):
+def process_cobol_file_for_copybook(cobol_file):
     cobol_code = cobol_file.read()
     encoding = detect_encoding(cobol_code)
     try:

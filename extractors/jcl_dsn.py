@@ -1,139 +1,110 @@
-from flask import Blueprint, request, jsonify
-import zipfile
-from extractors.parsers.parse_jcl_dsn import process_jcl_file
-from extractors.parsers.parse_jcl_dsn import process_jcl_file_for_program
-from extractors.parsers.parse_jcl_dsn import process_jcl_file_for_program_only
-from extractors.parsers.parse_jcl_dsn import process_jcl_file_for_utility_only
-from extractors.parsers.parse_jcl_dsn import process_jcl_file_for_proc
+from typing import List
+import chardet
+import re
 
-jcl_dsn_bp = Blueprint('jcl_dsn', __name__)
+# List of JCL utilities to search for
+UTILITIES = [
+    'IEFBR14', 'IEBGENER', 'IEBCOPY', 'IEBCOMPR', 'IEBEDIT',
+    'IEBUPDTE', 'IEBDG', 'IEBISAM', 'IEBPTPCH',
+    'IDCAMS', 'IEHPROGM', 'IEHLIST', 'IEHINITT', 'IEHMOVE',
+    'ICKDSF', 'SPZAP', 'DFSORT', 'SYNCSORT', 'ICETOOL',
+    'ICEGENER', 'IKJEFT01', 'IKJEFT1A', 'IKJEFT1B',
+    'IRXJCL', 'ZOAU', 'SORT', 'SDSF', 'DFHCSDUP'
+]
 
-@jcl_dsn_bp.route('/extract_jcl_dsn', methods=['POST'])
-def extract_jcl_dsn():
-    if 'file' not in request.files:
-        return jsonify({"error": "No file part"}), 400
-    file = request.files['file']
-    if file.filename == '':
-        return jsonify({"error": "No selected file"}), 400
-    if file and file.filename.endswith('.zip'):
-        try:
-            with zipfile.ZipFile(file, 'r') as zip_ref:
-                results = {}
-                for filename in zip_ref.namelist():
-                    if filename.endswith('.jcl'):
-                        with zip_ref.open(filename) as jcl_file:
-                            jcl_dsns = process_jcl_file(jcl_file)
-                            if jcl_dsns:
-                                results[filename] = jcl_dsns
-                if results:
-                    return jsonify(results), 200
-                else:
-                    return jsonify({"message": "No DSNs found"}), 200
-        except Exception as e:
-            return jsonify({"error": str(e)}), 500
-    else:
-        return jsonify({"error": "Invalid file format. Please upload a ZIP file."}), 400
+def detect_encoding(jcl_code: bytes):
+    result = chardet.detect(jcl_code)
+    return result['encoding']
 
-@jcl_dsn_bp.route('/extract_program_from_jcl', methods=['POST'])
-def extract_program_from_jcl():
-    if 'file' not in request.files:
-        return jsonify({"error": "No file part"}), 400
-    file = request.files['file']
-    if file.filename == '':
-        return jsonify({"error": "No selected file"}), 400
-    if file and file.filename.endswith('.zip'):
-        try:
-            with zipfile.ZipFile(file, 'r') as zip_ref:
-                results = {}
-                for filename in zip_ref.namelist():
-                    if filename.endswith('.jcl'):
-                        with zip_ref.open(filename) as jcl_file:
-                            jcl_pgms = process_jcl_file_for_program(jcl_file)
-                            if jcl_pgms:
-                                results[filename] = jcl_pgms
-                if results:
-                    return jsonify(results), 200
-                else:
-                    return jsonify({"message": "No Programs found"}), 200
-        except Exception as e:
-            return jsonify({"error": str(e)}), 500
-    else:
-        return jsonify({"error": "Invalid file format. Please upload a ZIP file."}), 400
+def process_jcl_file(jcl_file):
+    jcl_code = jcl_file.read()
+    encoding = detect_encoding(jcl_code)
+    try:
+        decoded_jcl = jcl_code.decode(encoding)
+    except (UnicodeDecodeError, TypeError):
+        decoded_jcl = jcl_code.decode('utf-8', errors='ignore')
+    
+    # Extract dataset names using DSN= or DSNAME= patterns
+    dsn_pattern = r'(?:DSN|DSNAME)\s*=\s*(?:\'|")?([^,\)\s\'"]+)'
+    datasetnames = list(set(re.findall(dsn_pattern, decoded_jcl, re.IGNORECASE)))
 
-@jcl_dsn_bp.route('/extract_program_only_from_jcl', methods=['POST'])
-def extract_program_only_from_jcl():
-    if 'file' not in request.files:
-        return jsonify({"error": "No file part"}), 400
-    file = request.files['file']
-    if file.filename == '':
-        return jsonify({"error": "No selected file"}), 400
-    if file and file.filename.endswith('.zip'):
-        try:
-            with zipfile.ZipFile(file, 'r') as zip_ref:
-                results = {}
-                for filename in zip_ref.namelist():
-                    if filename.endswith('.jcl'):
-                        with zip_ref.open(filename) as jcl_file:
-                            jcl_pgms = process_jcl_file_for_program_only(jcl_file)
-                            if jcl_pgms:
-                                results[filename] = jcl_pgms
-                if results:
-                    return jsonify(results), 200
-                else:
-                    return jsonify({"message": "No Programs found"}), 200
-        except Exception as e:
-            return jsonify({"error": str(e)}), 500
-    else:
-        return jsonify({"error": "Invalid file format. Please upload a ZIP file."}), 400
+    print("dataset name extraction completed")
+    return datasetnames
 
-@jcl_dsn_bp.route('/extract_utility_only_from_jcl', methods=['POST'])
-def extract_utility_only_from_jcl():
-    if 'file' not in request.files:
-        return jsonify({"error": "No file part"}), 400
-    file = request.files['file']
-    if file.filename == '':
-        return jsonify({"error": "No selected file"}), 400
-    if file and file.filename.endswith('.zip'):
-        try:
-            with zipfile.ZipFile(file, 'r') as zip_ref:
-                results = {}
-                for filename in zip_ref.namelist():
-                    if filename.endswith('.jcl'):
-                        with zip_ref.open(filename) as jcl_file:
-                            jcl_pgms = process_jcl_file_for_utility_only(jcl_file)
-                            if jcl_pgms:
-                                results[filename] = jcl_pgms
-                if results:
-                    return jsonify(results), 200
-                else:
-                    return jsonify({"message": "No Utilities found"}), 200
-        except Exception as e:
-            return jsonify({"error": str(e)}), 500
-    else:
-        return jsonify({"error": "Invalid file format. Please upload a ZIP file."}), 400
+def process_jcl_file_for_program(jcl_file):
+   
+    jcl_code = jcl_file.read()
+    encoding = detect_encoding(jcl_code)
+    try:
+        decoded_jcl = jcl_code.decode(encoding)
+    except (UnicodeDecodeError, TypeError):
+        # Fallback to utf-8 with error ignoring if detection fails or is incorrect
+        decoded_jcl = jcl_code.decode('utf-8', errors='ignore')
+    
+    # Extract program names using EXEC PGM= pattern
+    pgm_pattern = r'EXEC\s+PGM\s*=\s*([A-Z0-9$#@_-]+)'
+    #program_names = re.findall(pgm_pattern, decoded_jcl, re.IGNORECASE)
+    program_names = list(set(re.findall(pgm_pattern, decoded_jcl, re.IGNORECASE)))
 
-@jcl_dsn_bp.route('/extract_proc_from_jcl', methods=['POST'])
-def extract_proc_from_jcl():
-    if 'file' not in request.files:
-        return jsonify({"error": "No file part"}), 400
-    file = request.files['file']
-    if file.filename == '':
-        return jsonify({"error": "No selected file"}), 400
-    if file and file.filename.endswith('.zip'):
-        try:
-            with zipfile.ZipFile(file, 'r') as zip_ref:
-                results = {}
-                for filename in zip_ref.namelist():
-                    if filename.endswith('.jcl'):
-                        with zip_ref.open(filename) as jcl_file:
-                            jcl_pgms = process_jcl_file_for_proc(jcl_file)
-                            if jcl_pgms:
-                                results[filename] = jcl_pgms
-                if results:
-                    return jsonify(results), 200
-                else:
-                    return jsonify({"message": "No Utilities found"}), 200
-        except Exception as e:
-            return jsonify({"error": str(e)}), 500
-    else:
-        return jsonify({"error": "Invalid file format. Please upload a ZIP file."}), 400
+    print("Program name extraction completed.")
+    return program_names
+
+def process_jcl_file_for_program_only(jcl_file):
+    jcl_bytes = jcl_file.read()
+    encoding = detect_encoding(jcl_bytes)
+    try:
+        decoded_jcl = jcl_bytes.decode(encoding)
+    except (UnicodeDecodeError, TypeError):
+        decoded_jcl = jcl_bytes.decode('utf-8', errors='ignore')
+    
+    # Capture EXEC PGM=
+    pattern = r'EXEC\s+PGM\s*=\s*([A-Z0-9$#@_-]+)'
+    matches = re.findall(pattern, decoded_jcl, re.IGNORECASE)
+    
+    # Filter out utilities, dedupe & normalize
+    programs = sorted({
+        name.upper() for name in matches
+        if name.upper() not in UTILITIES
+    })
+    
+    print("Program only extraction completed.")
+    return list(programs)
+
+def process_jcl_file_for_utility_only(jcl_file):
+    jcl_bytes = jcl_file.read()
+    encoding = detect_encoding(jcl_bytes)
+    try:
+        decoded_jcl = jcl_bytes.decode(encoding)
+    except (UnicodeDecodeError, TypeError):
+        decoded_jcl = jcl_bytes.decode('utf-8', errors='ignore')
+    
+    # Capture EXEC PGM=
+    pattern = r'EXEC\s+PGM\s*=\s*([A-Z0-9$#@_-]+)'
+    matches = re.findall(pattern, decoded_jcl, re.IGNORECASE)
+    
+    # Filter out utilities, dedupe & normalize
+    utilities = sorted({
+        name.upper() for name in matches
+        if name.upper() in UTILITIES
+    })
+    
+    print("Utility only extraction completed.")
+    return list(utilities)
+
+def process_jcl_file_for_proc(jcl_file):
+   
+    jcl_code = jcl_file.read()
+    encoding = detect_encoding(jcl_code)
+    try:
+        decoded_jcl = jcl_code.decode(encoding)
+    except (UnicodeDecodeError, TypeError):
+        # Fallback to utf-8 with error ignoring if detection fails or is incorrect
+        decoded_jcl = jcl_code.decode('utf-8', errors='ignore')
+    
+    # Extract program names using EXEC PGM= pattern
+    proc_pattern = r'EXEC\s+PROC\s*=\s*([A-Z0-9$#@_-]+)'
+    #program_names = re.findall(pgm_pattern, decoded_jcl, re.IGNORECASE)
+    proc_names = list(set(re.findall(proc_pattern, decoded_jcl, re.IGNORECASE)))
+
+    print("Proc name extraction completed.")
+    return proc_names
